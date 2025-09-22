@@ -79,3 +79,38 @@ def compute_ats_score(resume_text: str, jd_text: str | None) -> Dict:
         "matched_keywords": matched,
         "total_keywords": len(jd_kw),
     }
+
+
+def analyze_resume_text(resume_text: str, jd_text: str = None, use_gpt: bool = False) -> Dict:
+    """
+    Analyze resume text against an optional job description, returning ATS score, skill gaps, and suggestions.
+    """
+    ats_result = compute_ats_score(resume_text, jd_text)
+    resume_keywords = get_keywords(resume_text, top_n=20)
+    jd_keywords = get_keywords(jd_text, top_n=20) if jd_text else []
+
+    # Skill gap analysis
+    missing_skills = [kw for kw in jd_keywords if not re.search(rf'\b{re.escape(kw)}\b', resume_text, flags=re.I)]
+    skill_match_pct = 100 - (len(missing_skills) / len(jd_keywords) * 100) if jd_keywords else 100.0
+
+    # Actionable feedback
+    feedback = []
+    if missing_skills:
+        feedback.append(f"Consider adding these skills or keywords: {', '.join(missing_skills)}.")
+    # Suggest more action verbs if few are present
+    present_verbs = [verb for verb in ACTION_VERBS if re.search(rf'\b{verb}\b', resume_text, flags=re.I)]
+    if len(present_verbs) < 3:
+        feedback.append("Try to use more action verbs to strengthen your achievements.")
+    # Section feedback
+    for section, present in ats_result.get('sections_present', {}).items():
+        if not present:
+            feedback.append(f"Add a section for {section.title()} to improve completeness.")
+
+    return {
+        "ats": ats_result,
+        "resume_keywords": resume_keywords,
+        "jd_keywords": jd_keywords,
+        "missing_skills": missing_skills,
+        "skill_match_pct": round(skill_match_pct, 2),
+        "feedback": feedback
+    }
