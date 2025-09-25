@@ -1,9 +1,12 @@
 fastapi
 uvicorn
 pdfplumber
-docx
+python-docx
 spacy
 keybert
 sentence-transformers
 scikit-learn
 numpy
+
+# To use spaCy, you also need to download the language model:
+# python -m spacy download en_core_web_sm
